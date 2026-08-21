@@ -1,13 +1,13 @@
 # MODULUS
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/ideatrino/modulus/actions/workflows/ci.yml)
+[![CI](https://github.com/ideatrino/modulus/actions/workflows/ci.yml/badge.svg)](https://github.com/ideatrino/modulus/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > A provably-fair mathematical duel. Two players pick secret residues on a ring of
 > integers; the same number decides both the clash and the movement. No hidden RNG in
 > outcomes, no dominant move, and — online — **nothing any player or server can cheat**.
 
-*(Replace `OWNER/REPO` in the badge above with your GitHub path after you push.)*
+*(Replace `ideatrino/modulus` in the badge above with your GitHub path after you push.)*
 
 ## Why it's different
 
