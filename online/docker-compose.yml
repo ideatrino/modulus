@@ -1,0 +1,34 @@
+services:
+  modulus:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - REVEAL_TIMEOUT_MS=30000   # forfeit if a player doesn't reveal in time
+      - GRACE_MS=20000            # window to reconnect & resume after a drop
+      - LADDER_FILE=/data/leaderboard.json
+    volumes:
+      - modulus-data:/data        # the trustless ladder survives restarts
+    restart: unless-stopped
+
+  # TURNKEY HTTPS / WSS.  Enable with:  MODULUS_DOMAIN=play.example.com docker compose --profile tls up -d
+  # Point that domain's DNS A/AAAA record at this host first; Caddy then
+  # provisions and renews a real certificate automatically and proxies
+  # both https:// and wss:// to the app. The client auto-selects wss when
+  # loaded over https, so nothing else needs configuring.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    depends_on: [modulus]
+    ports: ["80:80", "443:443"]
+    command: caddy reverse-proxy --from ${MODULUS_DOMAIN:-localhost} --to modulus:8080
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  modulus-data:
+  caddy-data:
+  caddy-config:

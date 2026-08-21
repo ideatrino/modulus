@@ -1,0 +1,18 @@
+{
+  "name": "modulus-online",
+  "version": "1.1.0",
+  "description": "MODULUS — a provably-fair mathematical duel. Trustless online multiplayer, reconnect, spectating, and a persistent signature-verified rating ladder.",
+  "main": "core.js",
+  "scripts": {
+    "start": "node prod-server.js",
+    "relay": "node server.js",
+    "test": "node test-online.js && node test-local.js && node test-full.js && node test-leaderboard.js && node test-ladder-api.js && node test-cosign.js && node test-archive.js",
+    "test:online": "node test-online.js",
+    "test:local": "node test-local.js",
+    "test:full": "node test-full.js",
+    "test:ladder": "node test-leaderboard.js && node test-ladder-api.js && node test-cosign.js && node test-archive.js",
+    "verify": "node verify.js"
+  },
+  "dependencies": { "ws": "^8.18.0" },
+  "license": "MIT"
+}

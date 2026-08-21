@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>MODULUS · Online — provably-fair duel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0D1A;--slate:#141A30;--slate-2:#1C2440;--line:#2A3358;
+    --you:#36E0C4;--you-dim:#1c6e62;--opp:#FF6E8A;--opp-dim:#7a3344;
+    --shard:#F6C652;--text:#E9EDF8;--muted:#828DB0;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--sans:"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans)}
+  body{min-height:100vh;background:radial-gradient(1100px 600px at 50% -10%,#16203f 0,transparent 60%),radial-gradient(800px 500px at 50% 120%,#1a1430 0,transparent 55%),var(--ink);padding:16px 14px 40px;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:520px}
+  .hidden{display:none!important}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
+  .title{font-family:var(--mono);font-weight:700;letter-spacing:.2em;font-size:18px;white-space:nowrap}
+  .title b{color:var(--you)} .title span{color:var(--muted);font-size:11px;letter-spacing:.14em}
+  .iconbtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;transition:.15s}
+  .iconbtn:hover{color:var(--text);border-color:var(--muted)}
+
+  .group{margin:18px 0}
+  .glabel{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.12em;margin:0 2px 9px;text-transform:uppercase}
+  .segs{display:flex;gap:8px;flex-wrap:wrap}
+  .seg{flex:1;min-width:60px;font-family:var(--mono);font-size:13px;color:var(--text);background:var(--slate-2);border:1px solid var(--line);border-radius:11px;padding:13px 8px;cursor:pointer;transition:.15s;text-align:center}
+  .seg small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+  .seg.on{border-color:var(--you);background:#1a2b44;box-shadow:0 0 0 1px var(--you) inset}
+  .seg.on small{color:var(--you)}
+  .ring-segs .seg{min-width:44px;flex:0 0 auto;width:50px}
+  input.code{width:100%;font-family:var(--mono);font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:var(--text);background:var(--slate-2);border:1px solid var(--line);border-radius:11px;padding:14px;text-align:center}
+  input.code::placeholder{color:var(--muted);letter-spacing:.1em}
+  .relayrow{margin-top:8px}
+  .relayrow input{width:100%;font-family:var(--mono);font-size:12px;color:var(--text);background:var(--slate-2);border:1px solid var(--line);border-radius:10px;padding:11px}
+  .start{width:100%;font-family:var(--mono);font-weight:700;letter-spacing:.14em;font-size:15px;color:var(--ink);background:var(--you);border:none;border-radius:13px;padding:16px;cursor:pointer;margin-top:8px;transition:.15s}
+  .start:hover{filter:brightness(1.08)}
+  .note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:12px;font-family:var(--mono)}
+  .note b{color:var(--text)}
+
+  .bars{display:grid;gap:9px;margin-bottom:12px}
+  .bar-row{display:grid;grid-template-columns:74px 1fr auto;align-items:center;gap:10px}
+  .who{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .who.you{color:var(--you)} .who.opp{color:var(--opp)}
+  .track{height:12px;border-radius:7px;background:#0c1126;border:1px solid var(--line);overflow:hidden}
+  .fill{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .fill.you{background:linear-gradient(90deg,var(--you-dim),var(--you))}
+  .fill.opp{background:linear-gradient(90deg,var(--opp-dim),var(--opp))}
+  .pips{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:66px;text-align:right;letter-spacing:1px}
+  .pips .lit{color:var(--shard)}
+
+  .stage{position:relative;width:100%;aspect-ratio:1/1;margin:4px auto;max-width:400px}
+  svg{width:100%;height:100%;overflow:visible;display:block}
+  .ring-base{fill:none;stroke:var(--line);stroke-width:1.4}
+  .spoke{stroke:#1b2342;stroke-width:1}
+  .node{fill:#0d1428;stroke:var(--line);stroke-width:1.3}
+  .node-label{font-family:var(--mono);fill:var(--muted);text-anchor:middle;dominant-baseline:central}
+  .champ{transition:transform .55s cubic-bezier(.2,.85,.25,1)}
+  .champ circle{stroke-width:2}
+  .champ.you circle{fill:rgba(54,224,196,.18);stroke:var(--you)}
+  .champ.opp circle{fill:rgba(255,110,138,.18);stroke:var(--opp)}
+  .champ .glow{filter:blur(6px);opacity:.55}
+  .shard{transition:opacity .35s}
+  .chord{stroke-width:2.5;stroke-linecap:round;opacity:0;transition:opacity .25s}
+  .center-cap{font-family:var(--mono);font-size:10px;letter-spacing:.18em;fill:var(--muted);text-anchor:middle}
+  .center-d{font-family:var(--mono);text-anchor:middle;dominant-baseline:central;font-size:34px;fill:var(--muted)}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}40%{opacity:1}100%{transform:scale(1.6);opacity:0}}
+  .float{font-family:var(--mono);font-weight:700;text-anchor:middle;animation:pop 1s ease-out forwards}
+
+  .strip{background:var(--slate);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .strip .lbl{color:var(--text)}
+  .hash{color:var(--you);word-break:break-all;flex:1;min-width:90px}
+  .hash.opp{color:var(--opp)}
+  .verify{color:var(--shard)} .verify.bad{color:var(--opp)}
+
+  .result{min-height:44px;background:var(--slate);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;font-size:13px;line-height:1.45}
+  .result .mono{font-family:var(--mono)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:6px;margin-right:6px}
+  .tag.you{background:rgba(54,224,196,.14);color:var(--you)}
+  .tag.opp{background:rgba(255,110,138,.14);color:var(--opp)}
+  .tag.parry{background:rgba(130,141,176,.16);color:var(--muted)}
+
+  .prompt{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.05em;margin:2px 2px 9px}
+  .prompt b{color:var(--text)}
+  .pad{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .pick{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--text);background:var(--slate-2);border:1px solid var(--line);border-radius:11px;padding:13px 0;cursor:pointer;transition:transform .08s,background .15s,border-color .15s,box-shadow .15s}
+  .pick:hover{background:#243056;border-color:var(--you);box-shadow:0 0 0 1px var(--you) inset}
+  .pick:active{transform:translateY(1px) scale(.96)}
+  .pick:disabled{opacity:.3;cursor:not-allowed;box-shadow:none;border-color:var(--line);background:var(--slate-2)}
+  .foot{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,9,18,.9);z-index:30;padding:20px;backdrop-filter:blur(4px)}
+  .overlay.show{display:flex}
+  .card{background:var(--slate);border:1px solid var(--line);border-radius:18px;padding:26px 24px;max-width:380px;width:100%;max-height:88vh;overflow:auto}
+  .card h2{font-family:var(--mono);letter-spacing:.14em;margin:0 0 6px;font-size:22px;text-align:center}
+  .card .lead{color:var(--muted);font-size:13px;line-height:1.5;text-align:center;margin:0 0 18px}
+  .card .row{display:flex;gap:10px;margin-top:16px}
+  .card .row .start{margin-top:0}
+  .ghost{width:100%;font-family:var(--mono);font-weight:600;letter-spacing:.1em;font-size:14px;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:13px;padding:15px;cursor:pointer;transition:.15s}
+  .ghost:hover{border-color:var(--muted)}
+  .audit{font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--muted);background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;white-space:pre-wrap}
+  .audit .ok{color:var(--you)} .audit .bad{color:var(--opp)}
+  .lbtable{font-family:var(--mono);font-size:12px;color:var(--text);max-height:46vh;overflow:auto}
+  .lbrow{display:flex;align-items:center;gap:8px;padding:9px 8px;border-bottom:1px solid var(--line)}
+  .lbrow .rk{width:26px;color:var(--muted);text-align:right}
+  .lbrow .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lbrow .rt{color:var(--you);font-weight:700}
+  .lbrow .wl{color:var(--muted);font-size:11px;width:74px;text-align:right}
+  .lbrow.me{background:#1a2b44;border-radius:8px}
+  .lbrow.join{cursor:pointer} .lbrow.join:hover{background:var(--slate-2)}
+  .lbempty{color:var(--muted);text-align:center;padding:18px 0;font-family:var(--mono);font-size:12px}
+  .spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--you);border-radius:50%;animation:spin 1s linear infinite;margin:6px auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.champ,.fill,.float,.spin{transition:none;animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== CONNECT ===== -->
+  <section id="connect">
+    <header>
+      <div class="title"><b>MOD</b>ULUS <span>· ONLINE</span></div>
+    </header>
+    <p class="note" style="font-size:12px;color:var(--muted);text-align:center;margin:6px 0 18px;line-height:1.6">
+      Two players, one ring. Every move is sealed with a hash before either is shown,
+      so neither of you — and no server — can peek or cheat. The whole match is auditable.
+    </p>
+
+    <div class="group">
+      <p class="glabel">Connection</p>
+      <div class="segs" id="tpSegs">
+        <div class="seg on" data-tp="local">Same machine<small>two browser tabs</small></div>
+        <div class="seg" data-tp="ws">Online relay<small>play over internet</small></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="glabel">Your name &nbsp;(shown on the ladder)</p>
+      <input class="code" id="pname" maxlength="18" placeholder="e.g. Ada" style="text-transform:none" />
+      <p class="glabel" id="idLine" style="margin:8px 2px 0;text-transform:none;letter-spacing:0">identity: —</p>
+    </div>
+
+    <div class="group">
+      <p class="glabel">Room code &nbsp;(share with your opponent)</p>
+      <input class="code" id="room" maxlength="16" placeholder="e.g. DUEL-7" value="DUEL-7" />
+    </div>
+
+    <div class="group" id="relayGroup" style="display:none">
+      <p class="glabel">Relay address</p>
+      <div class="relayrow"><input id="relay" value="ws://localhost:8080" /></div>
+    </div>
+
+    <div class="group" id="actionGroup" style="display:none">
+      <p class="glabel">Online action</p>
+      <div class="segs" id="actionSegs">
+        <div class="seg on" data-action="join">Join room<small>use a code</small></div>
+        <div class="seg" data-action="quick">Quick match<small>auto-pair</small></div>
+        <div class="seg" data-action="spectate">Spectate<small>watch a room</small></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="glabel">Ring size &nbsp;(the room creator's choice wins)</p>
+      <div class="segs ring-segs" id="sizeSegs">
+        <div class="seg" data-n="7">7</div>
+        <div class="seg on" data-n="11">11</div>
+        <div class="seg" data-n="13">13</div>
+        <div class="seg" data-n="17">17</div>
+        <div class="seg" data-n="23">23</div>
+      </div>
+    </div>
+
+    <button class="start" id="joinBtn">ENTER ROOM</button>
+    <div class="row" style="display:flex;gap:10px;margin-top:10px">
+      <button class="ghost" id="ladderBtn">🏆 LADDER</button>
+      <button class="ghost" id="browseBtn" style="display:none">◎ BROWSE ROOMS</button>
+    </div>
+    <div class="row" style="display:flex;gap:10px;margin-top:10px">
+      <button class="ghost" id="replayBtn">▷ REPLAY &amp; VERIFY A MATCH</button>
+    </div>
+    <p class="note" id="connectNote">
+      <b>Same-machine mode</b> needs no server: open this page in two tabs (served over http, not file://),
+      enter the same room code in both. <b>Online relay</b> needs a friend running <b>server.js</b> — see the README.
+    </p>
+  </section>
+
+  <!-- ===== GAME ===== -->
+  <section id="game" class="hidden">
+    <header>
+      <div class="title"><b>MOD</b>ULUS <span id="roomTag"></span></div>
+      <div style="display:flex;gap:8px">
+        <button class="iconbtn" id="auditLiveBtn">AUDIT</button>
+        <button class="iconbtn" id="leaveBtn">LEAVE</button>
+      </div>
+    </header>
+
+    <div class="bars">
+      <div class="bar-row">
+        <span class="who you" id="nameYou">You</span>
+        <div class="track"><div class="fill you" id="hpYou" style="width:100%"></div></div>
+        <span class="pips" id="scYou"></span>
+      </div>
+      <div class="bar-row">
+        <span class="who opp" id="nameOpp">Opponent</span>
+        <div class="track"><div class="fill opp" id="hpOpp" style="width:100%"></div></div>
+        <span class="pips" id="scOpp"></span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <svg id="board" viewBox="0 0 400 400">
+        <circle class="ring-base" cx="200" cy="200" r="150"></circle>
+        <g id="spokes"></g><g id="nodes"></g>
+        <line class="chord" id="chord" x1="200" y1="200" x2="200" y2="200"></line>
+        <text class="center-cap" id="centerCap" x="200" y="178">DIFFERENCE</text>
+        <text class="center-d" id="centerD" x="200" y="206">—</text>
+        <g id="shards"></g><g id="champs"></g><g id="fx"></g>
+      </svg>
+    </div>
+
+    <div class="strip">
+      <span class="lbl">your seal</span><span class="hash" id="cYou">—</span>
+      <span class="lbl">opp</span><span class="hash opp" id="cOpp">—</span>
+      <span class="verify" id="verify"></span>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="prompt" id="prompt">connecting…</div>
+    <div class="pad" id="pad"></div>
+    <div class="foot"></div>
+  </section>
+</div>
+
+<!-- ===== LOBBY / WAIT ===== -->
+<div class="overlay" id="lobby">
+  <div class="card" style="text-align:center">
+    <div class="spin"></div>
+    <h2 id="lobbyTitle">WAITING</h2>
+    <p class="lead" id="lobbyText">Waiting for your opponent to enter the room…</p>
+    <button class="ghost" id="lobbyCancel">CANCEL</button>
+  </div>
+</div>
+
+<!-- ===== GAME OVER ===== -->
+<div class="overlay" id="over">
+  <div class="card">
+    <h2 id="overTitle">—</h2>
+    <p class="lead" id="overText">—</p>
+    <div class="audit hidden" id="ladderOut" style="margin-bottom:12px"></div>
+    <button class="ghost" id="auditBtn">AUDIT MATCH INTEGRITY</button>
+    <button class="ghost" id="exportProofBtn" style="display:none;margin-top:10px">⤓ EXPORT VERIFIABLE PROOF</button>
+    <div class="audit hidden" id="auditOut"></div>
+    <div class="row"><button class="start" id="againBtn">NEW ROOM</button></div>
+  </div>
+</div>
+
+<!-- ===== LEADERBOARD ===== -->
+<div class="overlay" id="ladder">
+  <div class="card">
+    <h2>🏆 LADDER</h2>
+    <p class="lead">Trustless Elo. A match counts only if both players signed the exact transcript and it passes an independent audit — forged or tampered results are rejected.</p>
+    <div id="ladderTable" class="lbtable">loading…</div>
+    <div class="row"><button class="ghost" id="ladderClose">CLOSE</button></div>
+  </div>
+</div>
+
+<!-- ===== ROOM BROWSER ===== -->
+<div class="overlay" id="browse">
+  <div class="card">
+    <h2>◎ OPEN ROOMS</h2>
+    <p class="lead">Rooms waiting for a second player. Tap one to join.</p>
+    <div id="browseList" class="lbtable">loading…</div>
+    <div class="row"><button class="ghost" id="browseRefresh">REFRESH</button><button class="ghost" id="browseClose">CLOSE</button></div>
+  </div>
+</div>
+
+<!-- ===== REPLAY / VERIFY ===== -->
+<div class="overlay" id="replay">
+  <div class="card">
+    <h2>▷ REPLAY &amp; VERIFY</h2>
+    <p class="lead">Load a proof file exported from any match, or pick a recent one from the ladder. It replays move-by-move and re-verifies both signatures and every commitment — no trust required.</p>
+    <label class="ghost" for="proofFile" style="display:block;text-align:center;cursor:pointer">⤒ LOAD A PROOF FILE (.json)</label>
+    <input id="proofFile" type="file" accept="application/json,.json" style="display:none" />
+    <div id="recentMatches" class="lbtable" style="margin-top:12px">recent matches load here…</div>
+    <div class="row"><button class="ghost" id="replayClose">CLOSE</button></div>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script>
+const M = window.MODULUS;
+const CFG = { tp:'local', N:11, room:'DUEL-7', relay:'ws://localhost:8080', action:'join' };
+
+/* ---------------- identity (persistent, for the trustless ladder) ----------------
+   A player IS a keypair. The private key never leaves this browser; only the
+   public key and a per-match signature are ever shared. Persisted in localStorage
+   when available so your rating follows you across sessions; falls back to an
+   in-memory identity (this session only) if storage is blocked. */
+const ECP = { name:'ECDSA', namedCurve:'P-256' };
+const ID = { priv:null, pub:null, name:'', id:'' };
+async function pubFingerprint(jwk){
+  const material = JSON.stringify({ kty:jwk.kty, crv:jwk.crv, x:jwk.x, y:jwk.y });
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
+}
+async function initIdentity(){
+  let saved=null; try{ saved=JSON.parse(localStorage.getItem('modulus-id')||'null'); }catch(e){}
+  if(saved && saved.priv && saved.pub){
+    try{ ID.priv=await crypto.subtle.importKey('jwk', saved.priv, ECP, true, ['sign']); ID.pub=saved.pub; ID.name=saved.name||''; }catch(e){ saved=null; }
+  }
+  if(!ID.priv){
+    const kp=await M.genKeyPair();
+    ID.priv=kp.privateKey; ID.pub=await M.exportPub(kp.publicKey);
+    const privJwk=await crypto.subtle.exportKey('jwk', kp.privateKey);
+    try{ localStorage.setItem('modulus-id', JSON.stringify({priv:privJwk, pub:ID.pub, name:ID.name})); }catch(e){}
+  }
+  ID.id=await pubFingerprint(ID.pub);
+  const el=document.getElementById('pname'); if(el){ el.value=ID.name; el.oninput=saveName; }
+  document.getElementById('idLine').textContent='identity: '+ID.id+(saved?'':' (new)');
+}
+function saveName(){
+  ID.name=(document.getElementById('pname').value||'').slice(0,18);
+  try{ const s=JSON.parse(localStorage.getItem('modulus-id')||'{}'); s.name=ID.name; localStorage.setItem('modulus-id', JSON.stringify(s)); }catch(e){}
+}
+// HTTP origin for the ladder API: this page is served BY the relay, so same origin.
+function httpBase(){ return (location.protocol==='http:'||location.protocol==='https:') ? location.origin : null; }
+
+/* ---------------- transports ---------------- */
+// Online relay transport
+function WSTransport(url, opts){ // opts: {room, N, action:'join'|'quick'|'spectate'}
+  let ws;
+  const tp = { onEvent:()=>{}, onStatus:()=>{}, token:null, _ended:false, _intentional:false,
+    sendCommit(r,c){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({t:'commit',round:r,c})); },
+    sendReveal(r,m,nonce){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({t:'reveal',round:r,m,nonce})); },
+    sendRaw(o){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); },
+    close(){ tp._intentional=true; try{ws.close();}catch(e){} } };
+  function open(resumeToken){
+    ws = new WebSocket(url);
+    ws.onopen = ()=>{
+      if(opts.action==='quick') ws.send(JSON.stringify({t:'quickmatch',N:opts.N}));
+      else ws.send(JSON.stringify({t:'join',room:opts.room,N:opts.N,spectate:opts.action==='spectate',resumeToken}));
+    };
+    ws.onerror = ()=> tp.onStatus({t:'error',msg:'could not reach '+url});
+    ws.onmessage = (e)=>{ const ev=JSON.parse(e.data); if(ev.token) tp.token=ev.token;
+      if(['role','commits','reveals','forfeit','peerLeft','resume','spectate'].includes(ev.t)) tp.onEvent(ev);
+      else tp.onStatus(ev); }; // 'peerSig', 'rooms', 'seated', 'wait', 'err' → onStatus
+    ws.onclose = ()=>{ if(tp._intentional||tp._ended) return;
+      if(tp.token && opts.action!=='spectate'){ tp.onStatus({t:'reconnecting'}); setTimeout(()=>open(tp.token), 800); }
+      else tp.onStatus({t:'closed'}); };
+  }
+  open(null);
+  return tp;
+}
+// Same-machine transport over BroadcastChannel — synthesizes the relay locally.
+function ChannelTransport(room, N){
+  const ch = new BroadcastChannel('modulus-'+room);
+  const myId = Math.random().toString(36).slice(2)+Date.now().toString(36);
+  const state = { role:null, peerId:null, peerN:null, started:false, replied:false,
+    rounds:{} }; // round -> {commits:{A,B}, reveals:{A,B}, cSent, rSent}
+  const tp = { onEvent:()=>{}, onStatus:()=>{},
+    sendCommit(r,c){ ensure(r).commits[state.role]=c; ch.postMessage({k:'commit',round:r,from:state.role,c}); check(r); },
+    sendReveal(r,m,nonce){ ensure(r).reveals[state.role]={m,nonce}; ch.postMessage({k:'reveal',round:r,from:state.role,m,nonce}); check(r); },
+    sendRaw(){}, // same-machine mode has no ladder server
+    close(){ try{ch.postMessage({k:'bye'});ch.close();}catch(e){} } };
+  function ensure(r){ return state.rounds[r] || (state.rounds[r]={commits:{},reveals:{}}); }
+  function determineRoles(){
+    if(state.started || !state.peerId) return;
+    state.started = true;
+    // lower id is A; A's N is authoritative
+    const iAmA = myId < state.peerId;
+    state.role = iAmA ? 'A' : 'B';
+    const N = iAmA ? N0 : state.peerN;
+    tp.onEvent({t:'role', role:state.role, N});
+  }
+  function check(r){
+    const R=state.rounds[r]; if(!R) return;
+    if(R.commits.A && R.commits.B && !R.cSent){ R.cSent=true; tp.onEvent({t:'commits',round:r,cA:R.commits.A,cB:R.commits.B}); }
+    if(R.reveals.A && R.reveals.B && !R.rSent){ R.rSent=true;
+      tp.onEvent({t:'reveals',round:r,mA:R.reveals.A.m,nonceA:R.reveals.A.nonce,mB:R.reveals.B.m,nonceB:R.reveals.B.nonce}); }
+  }
+  const N0 = N;
+  ch.onmessage = (e)=>{ const d=e.data;
+    if(d.k==='hello'){
+      if(!state.peerId){ state.peerId=d.id; state.peerN=d.N; }
+      if(!state.replied){ state.replied=true; ch.postMessage({k:'hello',id:myId,N:N0}); } // reply so early joiner learns us
+      determineRoles();
+    } else if(d.k==='commit'){ ensure(d.round).commits[d.from]=d.c; check(d.round); }
+    else if(d.k==='reveal'){ ensure(d.round).reveals[d.from]={m:d.m,nonce:d.nonce}; check(d.round); }
+    else if(d.k==='bye'){ tp.onEvent({t:'peerLeft'}); }
+  };
+  ch.postMessage({k:'hello',id:myId,N:N0});
+  return tp;
+}
+
+/* ---------------- client wiring ---------------- */
+let client=null, transport=null, myRole='A', lastState=null;
+let resolveMove=null;
+// post-match co-signature state
+let cosign={ N:0, transcript:null, mySig:null, peerPub:null, peerSig:null, submitted:false, winner:null };
+let lastProof=null;
+
+async function trySubmitLadder(){
+  if(cosign.submitted || !cosign.mySig || !cosign.peerSig || !cosign.transcript) return;
+  const base=httpBase(); if(!base) return; // no ladder without a server (e.g. same-machine mode)
+  cosign.submitted=true;
+  const mine={pub:ID.pub, sig:cosign.mySig}, peer={pub:cosign.peerPub, sig:cosign.peerSig};
+  const A = myRole==='A'?mine:peer, B = myRole==='A'?peer:mine;
+  const nameA = myRole==='A'?(ID.name||ID.id.slice(0,6)):'opponent';
+  const nameB = myRole==='B'?(ID.name||ID.id.slice(0,6)):'opponent';
+  // Self-verifying proof — downloadable and checkable by anyone, no server needed.
+  lastProof = { game:'MODULUS', N:cosign.N, transcript:cosign.transcript, pubA:A.pub, pubB:B.pub,
+    sigA:A.sig, sigB:B.sig, winner:cosign.winner||null, a:{name:nameA}, b:{name:nameB} };
+  document.getElementById('exportProofBtn').style.display='block';
+  const out=document.getElementById('ladderOut'); out.classList.remove('hidden'); out.innerHTML='Submitting to the ladder…';
+  try{
+    const res=await fetch(base+'/api/submit',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({N:cosign.N, transcript:cosign.transcript, pubA:A.pub, pubB:B.pub, sigA:A.sig, sigB:B.sig, nameA, nameB})});
+    const j=await res.json();
+    if(j.ok){
+      const meSide = myRole==='A'?j.a:j.b, d=meSide.delta;
+      out.innerHTML=`<span class="ok">✓ RATED</span>  your Elo ${d>=0?'+':''}${d} → <b>${meSide.rating}</b>\n`+
+        `both players co-signed this exact transcript; the ladder re-audited it before counting.`;
+    } else if(/already|replay/.test(j.reason||'')){
+      out.innerHTML=`<span class="ok">✓ RATED</span>  recorded (your opponent submitted it first).`;
+    } else {
+      out.innerHTML=`<span class="bad">not rated</span>  ${j.reason||'rejected'}`;
+    }
+  }catch(e){ out.innerHTML=`<span class="bad">ladder unreachable</span>  the match is still provably fair; it just wasn't rated.`; }
+}
+
+function getMove(round, state){
+  return new Promise(res=>{ resolveMove=res; setPad(true); setPrompt('› <b>Pick your residue</b> — sealed instantly, revealed only when both are in.'); });
+}
+function onPad(m){ if(resolveMove){ const r=resolveMove; resolveMove=null; setPad(false); r(m); } }
+
+function setLobby(title,text){ document.getElementById('lobbyTitle').textContent=title; document.getElementById('lobbyText').textContent=text; }
+const isSpectator = ()=> CFG.tp==='ws' && CFG.action==='spectate';
+
+function connect(){
+  const N=CFG.N, room=CFG.room;
+  document.getElementById('roomTag').textContent='· '+(CFG.tp==='ws'&&CFG.action==='quick'?'quick-match':room);
+  transport = CFG.tp==='ws' ? WSTransport(CFG.relay, {room,N,action:CFG.action}) : ChannelTransport(room, N);
+  transport.onStatus = (ev)=>{
+    if(ev.t==='error'){ setLobby('NO RELAY', ev.msg); }
+    else if(ev.t==='seated'){ if(ev.room){ CFG.room=ev.room; document.getElementById('roomTag').textContent='· '+ev.room; setLobby('ROOM '+ev.room, 'Share this code — waiting for your opponent…'); } }
+    else if(ev.t==='wait'){ /* keep waiting */ }
+    else if(ev.t==='reconnecting'){ setLobby('RECONNECTING','Lost connection — resuming your match…'); show('lobby'); }
+    else if(ev.t==='err'){ setLobby('ERROR', ev.msg||'room unavailable'); }
+    else if(ev.t==='peerSig'){ cosign.peerPub=ev.pub; cosign.peerSig=ev.sig; trySubmitLadder(); }
+  };
+  client = new M.ProtocolClient(transport, {
+    spectator: isSpectator(), getMove,
+    onRole:(role,state,resumed)=>{ myRole=role; lastState=state; hide('lobby'); show('game'); initBoard(state); render(state);
+      if(role==='S'){ setPrompt('👁 Spectating — a provably-fair match, verified live.'); setPad(false); }
+      else setPrompt(resumed?'Reconnected — resuming your match.':'Round 1 — pick your residue.'); },
+    onCommitted:(round,c)=>{ document.getElementById('cYou').textContent='0x'+c.slice(0,10)+'…'; document.getElementById('verify').textContent=''; setPrompt('Sealed. Waiting for opponent to commit…'); },
+    onCommits:(round,cs)=>{ const oc = myRole==='B'?cs.cA:cs.cB; document.getElementById(myRole==='S'?'cYou':'cOpp').textContent = (myRole==='S'?'A 0x'+cs.cA.slice(0,8):'0x'+oc.slice(0,10))+'…'; if(myRole==='S') document.getElementById('cOpp').textContent='B 0x'+cs.cB.slice(0,8)+'…'; setPrompt(myRole==='S'?'Both sealed — revealing…':'Both sealed — revealing…'); },
+    onResolve:(state,rec)=>{ lastState=state; showResult(rec); render(state); drawClash(rec); document.getElementById('verify').textContent='VERIFIED ✓'; document.getElementById('verify').className='verify'; },
+    onEnd:async(result,transcript)=>{ if(transport) transport._ended=true; hide('lobby'); endGame(result,transcript);
+      // Trustless ladder: co-sign the exact transcript and hand my signature to the
+      // opponent through the relay. Only rated online matches that reached a real
+      // result (not forfeits/disconnects, not same-machine, not spectating).
+      const rated = CFG.tp==='ws' && myRole!=='S' && !result.forfeit && !result.disconnect && httpBase();
+      if(rated){
+        cosign={ N:curN, transcript, mySig:null, peerPub:null, peerSig:null, submitted:false, winner:result.winner };
+        try{ cosign.mySig=(await M.signMatch(ID.priv, curN, transcript)).sig;
+          transport.sendRaw({t:'sig', pub:ID.pub, sig:cosign.mySig}); trySubmitLadder(); }catch(e){}
+      } },
+    onError:(e)=>{ document.getElementById('verify').textContent='✗ '+e.message; document.getElementById('verify').className='verify bad'; }
+  });
+  setLobby(CFG.action==='spectate'?'CONNECTING':'WAITING', CFG.action==='spectate'?'Joining as spectator…':'Waiting for your opponent to enter the room…');
+  show('lobby');
+}
+
+/* ---------------- rendering ---------------- */
+const R=150,CX=200,CY=200;
+function nodePos(i,N){ const a=-Math.PI/2+i*(2*Math.PI/N); return {x:CX+R*Math.cos(a),y:CY+R*Math.sin(a)}; }
+function nodeR(N){ return N<=11?15:N<=17?12:10; }
+function labelSize(N){ return N<=11?13:N<=17?11:9; }
+let curN=11;
+function initBoard(state){
+  curN=state.cfg.N;
+  const sp=document.getElementById('spokes'),nd=document.getElementById('nodes'); sp.innerHTML='';nd.innerHTML='';
+  const nr=nodeR(curN),fs=labelSize(curN);
+  for(let i=0;i<curN;i++){ const p=nodePos(i,curN);
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line'); l.setAttribute('class','spoke'); l.setAttribute('x1',CX);l.setAttribute('y1',CY);l.setAttribute('x2',p.x);l.setAttribute('y2',p.y); sp.appendChild(l);
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('class','node'); c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',nr); nd.appendChild(c);
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('class','node-label'); t.setAttribute('x',p.x);t.setAttribute('y',p.y);t.setAttribute('font-size',fs); t.textContent=i; nd.appendChild(t); }
+  const pad=document.getElementById('pad'); pad.innerHTML='';
+  for(let i=0;i<curN;i++){ const b=document.createElement('button'); b.className='pick'; b.textContent=i; b.disabled=true; b.onclick=()=>onPad(i); pad.appendChild(b); }
+  if(myRole==='S'){ document.getElementById('nameYou').textContent='Player A'; document.getElementById('nameOpp').textContent='Player B'; }
+  else { document.getElementById('nameYou').textContent = myRole==='A'?'You (A)':'You (B)'; document.getElementById('nameOpp').textContent = myRole==='A'?'Opponent (B)':'Opponent (A)'; }
+}
+function me(state){ return myRole==='B'?state.B:state.A; }   // A or spectator → A side
+function foe(state){ return myRole==='B'?state.A:state.B; }
+function render(state){
+  const HP=state.cfg.START_HP, WIN=state.cfg.WIN_SCORE;
+  document.getElementById('hpYou').style.width=(100*me(state).hp/HP)+'%';
+  document.getElementById('hpOpp').style.width=(100*foe(state).hp/HP)+'%';
+  document.getElementById('scYou').innerHTML=pips(me(state).score,WIN);
+  document.getElementById('scOpp').innerHTML=pips(foe(state).score,WIN);
+  const sg=document.getElementById('shards'); sg.innerHTML='';
+  for(const s of state.shards){ const pt=nodePos(s,curN); const d=document.createElementNS('http://www.w3.org/2000/svg','path'); const z=7;
+    d.setAttribute('d',`M${pt.x} ${pt.y-z} L${pt.x+z} ${pt.y} L${pt.x} ${pt.y+z} L${pt.x-z} ${pt.y} Z`); d.setAttribute('class','shard'); d.setAttribute('fill','var(--shard)'); d.setAttribute('stroke','#7a5e16'); d.setAttribute('stroke-width','1'); sg.appendChild(d); }
+  const cg=document.getElementById('champs'); cg.innerHTML='';
+  cg.appendChild(champEl(me(state).pos,'you')); cg.appendChild(champEl(foe(state).pos,'opp'));
+}
+function pips(s,max){ let o=''; for(let i=0;i<max;i++) o+= i<s?'<span class="lit">◆</span>':'◇'; return o; }
+function champEl(pos,cls){ const pt=nodePos(pos,curN); const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','champ '+cls); g.setAttribute('transform',`translate(${pt.x} ${pt.y})`);
+  const glow=document.createElementNS('http://www.w3.org/2000/svg','circle'); glow.setAttribute('class','glow'); glow.setAttribute('r',12); glow.setAttribute('fill',cls==='you'?'var(--you)':'var(--opp)');
+  const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('r',10); g.appendChild(glow); g.appendChild(c); return g; }
+function setPrompt(html){ document.getElementById('prompt').innerHTML=html; }
+function setPad(on){ document.querySelectorAll('.pick').forEach(b=>b.disabled=!on); }
+
+function showResult(rec){
+  const spec = myRole==='S';
+  const mine = spec ? 'A' : myRole;                    // whose side is the cyan "you" side
+  const iWon = rec.winner===mine, theyWon = rec.winner!=='none' && !iWon;
+  const myM = mine==='A'?rec.mA:rec.mB, opM = mine==='A'?rec.mB:rec.mA;
+  let tag;
+  if(rec.winner==='none') tag=`<span class="tag parry">PARRY</span> Equal residues.`;
+  else if(spec) tag=`<span class="tag ${rec.winner==='A'?'you':'opp'}">${rec.winner==='A'?'A':'B'} WON</span> dealt <b>${rec.dmg}</b>.`;
+  else if(iWon) tag=`<span class="tag you">CLASH WON</span> You dealt <b>${rec.dmg}</b>.`;
+  else tag=`<span class="tag opp">CLASH LOST</span> Opponent dealt <b>${rec.dmg}</b>.`;
+  const myG = mine==='A'?rec.ag:rec.bg, opG = mine==='A'?rec.bg:rec.ag;
+  const sh = (myG||opG)?` <span style="color:var(--shard)">Shards:</span> +${myG} / +${opG}.`:'';
+  const lead = spec ? `A ${rec.mA} · B ${rec.mB}` : `you ${myM} · opp ${opM}`;
+  document.getElementById('result').innerHTML=`<span class="mono">${lead} → d=${rec.d}</span><br>${tag}${sh}`;
+}
+function drawClash(rec){
+  const yp=nodePos(me(lastState).pos,curN), op=nodePos(foe(lastState).pos,curN);
+  const mine = myRole==='S'?'A':myRole;
+  const iWon=rec.winner===mine, none=rec.winner==='none';
+  const color = none?'var(--muted)':(iWon?'var(--you)':'var(--opp)');
+  const ch=document.getElementById('chord'); ch.setAttribute('x1',yp.x);ch.setAttribute('y1',yp.y);ch.setAttribute('x2',op.x);ch.setAttribute('y2',op.y); ch.setAttribute('stroke',color); ch.style.opacity='0.8'; setTimeout(()=>ch.style.opacity='0',700);
+  const cd=document.getElementById('centerD'); cd.textContent=rec.d; cd.setAttribute('fill',color);
+  document.getElementById('centerCap').textContent=none?'PARRY':'DIFFERENCE';
+  if(rec.dmg>0){ const tgt=iWon?op:yp; const fx=document.getElementById('fx'); const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('class','float'); t.setAttribute('x',tgt.x);t.setAttribute('y',tgt.y-16); t.setAttribute('fill',color); t.setAttribute('font-size','20'); t.textContent='−'+rec.dmg; fx.appendChild(t); setTimeout(()=>t.remove(),1000); }
+}
+
+/* ---------------- game over + audit ---------------- */
+let lastTranscript=[];
+function endGame(result, transcript){
+  lastTranscript=transcript||[];
+  const spec = myRole==='S';
+  const iWon = result.winner===(spec?'A':myRole);
+  const t = result.winner==='draw' ? 'DRAW' : spec ? ('PLAYER '+result.winner+' WINS') : (iWon?'YOU WIN':'YOU LOSE');
+  document.getElementById('overTitle').textContent=t;
+  document.getElementById('overTitle').style.color = result.winner==='draw'?'var(--muted)':(result.winner==='A'?'var(--you)':result.winner==='B'?'var(--opp)':(iWon?'var(--you)':'var(--opp)'));
+  document.getElementById('overText').textContent = result.reason || '';
+  document.getElementById('auditOut').classList.add('hidden');
+  setPad(false);
+  show('over');
+}
+async function runAudit(outId){
+  const out=document.getElementById(outId); out.classList.remove('hidden'); out.innerHTML='Recomputing…';
+  if(!lastTranscript.length){ out.textContent='No rounds to audit yet.'; return; }
+  const a = await M.audit(curN, lastTranscript);
+  out.innerHTML =
+    `<span class="${a.hashBad===0?'ok':'bad'}">✓ commitments</span>  ${a.hashOK} valid, ${a.hashBad} tampered\n`+
+    `<span class="${a.stateOK?'ok':'bad'}">✓ recomputation</span>  ${a.rounds} rounds replayed from both players' revealed moves\n`+
+    `<span class="${a.stateOK?'ok':'bad'}">✓ final state</span>  ${a.stateOK?'reproduces exactly':'MISMATCH'}\n\n`+
+    (a.ok?'<span class="ok">MATCH INTEGRITY VERIFIED — no server was trusted; nothing could be tampered with.</span>':'<span class="bad">INTEGRITY FAILURE</span>');
+}
+
+/* ---------------- menu wiring ---------------- */
+function show(id){ ['connect','game'].includes(id)?(document.getElementById('connect').classList.toggle('hidden',id!=='connect'),document.getElementById('game').classList.toggle('hidden',id!=='game')):document.getElementById(id).classList.add('show'); }
+function hide(id){ document.getElementById(id).classList.remove('show'); }
+function seg(container,attr,fn){ document.getElementById(container).addEventListener('click',e=>{ const s=e.target.closest('.seg'); if(!s)return; [...s.parentElement.children].forEach(c=>c.classList.remove('on')); s.classList.add('on'); fn(s.getAttribute(attr)); }); }
+seg('tpSegs','data-tp',v=>{ CFG.tp=v; const on=v==='ws'; document.getElementById('relayGroup').style.display=on?'block':'none'; document.getElementById('actionGroup').style.display=on?'block':'none'; document.getElementById('browseBtn').style.display=on?'block':'none'; });
+seg('sizeSegs','data-n',v=>CFG.N=parseInt(v,10));
+seg('actionSegs','data-action',v=>{ CFG.action=v; });
+// If this page is served over http(s), default the relay to THIS server.
+(function(){ const loc=location; if(loc.protocol==='http:'||loc.protocol==='https:'){ const scheme=loc.protocol==='https:'?'wss://':'ws://'; document.getElementById('relay').value = scheme+loc.host; } })();
+document.getElementById('joinBtn').onclick=()=>{ CFG.room=(document.getElementById('room').value||'lobby').trim().toUpperCase(); CFG.relay=document.getElementById('relay').value.trim(); connect(); };
+document.getElementById('leaveBtn').onclick=()=>{ if(transport)transport.close(); location.reload(); };
+document.getElementById('lobbyCancel').onclick=()=>{ if(transport)transport.close(); hide('lobby'); };
+document.getElementById('auditBtn').onclick=()=>runAudit('auditOut');
+document.getElementById('auditLiveBtn').onclick=()=>{ lastTranscript=client?client.transcript:[]; document.getElementById('overTitle').textContent='LIVE AUDIT'; document.getElementById('overTitle').style.color='var(--text)'; document.getElementById('overText').textContent='Integrity of the rounds played so far.'; document.getElementById('againBtn').textContent='RESUME'; document.getElementById('againBtn').onclick=()=>{hide('over');document.getElementById('againBtn').textContent='NEW ROOM';document.getElementById('againBtn').onclick=()=>location.reload();}; show('over'); runAudit('auditOut'); };
+document.getElementById('againBtn').onclick=()=>location.reload();
+
+/* ---------------- leaderboard view ---------------- */
+async function showLadder(){
+  show('ladder'); const box=document.getElementById('ladderTable'); box.innerHTML='loading…';
+  const base=httpBase();
+  if(!base){ box.innerHTML='<div class="lbempty">The ladder lives on the relay server.<br>Open this page from your MODULUS server (http/https) to see it.</div>'; return; }
+  try{
+    const r=await fetch(base+'/api/leaderboard'); const j=await r.json();
+    if(!j.standings || !j.standings.length){ box.innerHTML='<div class="lbempty">No rated matches yet — play an online match to open the ladder.</div>'; return; }
+    box.innerHTML=j.standings.map(p=>{
+      const me = p.id===ID.id ? ' me' : '';
+      const wl = `${p.wins}–${p.losses}${p.draws?('–'+p.draws):''}`;
+      return `<div class="lbrow${me}"><span class="rk">${p.rank}</span><span class="nm">${esc(p.name)}${me?' ·you':''}</span><span class="rt">${p.rating}</span><span class="wl">${wl}</span></div>`;
+    }).join('');
+  }catch(e){ box.innerHTML='<div class="lbempty">Could not reach the ladder.</div>'; }
+}
+function esc(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+/* ---------------- room browser ---------------- */
+let browseWS=null;
+function browseRooms(){
+  show('browse'); const box=document.getElementById('browseList'); box.innerHTML='loading…';
+  const url=(document.getElementById('relay').value||CFG.relay).trim();
+  try{ if(browseWS) browseWS.close(); }catch(e){}
+  try{
+    browseWS=new WebSocket(url);
+    browseWS.onopen=()=>browseWS.send(JSON.stringify({t:'list'}));
+    browseWS.onerror=()=>{ box.innerHTML='<div class="lbempty">Could not reach the relay at '+esc(url)+'.</div>'; };
+    browseWS.onmessage=(e)=>{ const ev=JSON.parse(e.data); if(ev.t!=='rooms') return;
+      if(!ev.rooms.length){ box.innerHTML='<div class="lbempty">No open rooms. Create one with a room code, or use Quick match.</div>'; }
+      else box.innerHTML=ev.rooms.map(r=>`<div class="lbrow join" data-room="${esc(r.code)}" data-n="${r.N}"><span class="nm">${esc(r.code)}</span><span class="wl">N=${r.N} · ${r.players}/2${r.spectators?(' · '+r.spectators+'👁'):''}</span></div>`).join('');
+      try{ browseWS.close(); }catch(e){} };
+  }catch(e){ box.innerHTML='<div class="lbempty">Invalid relay address.</div>'; }
+}
+document.getElementById('browseList').addEventListener('click',e=>{ const row=e.target.closest('.lbrow.join'); if(!row) return;
+  document.getElementById('room').value=row.getAttribute('data-room');
+  const n=row.getAttribute('data-n'); document.querySelectorAll('#sizeSegs .seg').forEach(s=>s.classList.toggle('on', s.getAttribute('data-n')===n)); CFG.N=parseInt(n,10);
+  // ensure we're in join mode
+  CFG.action='join'; document.querySelectorAll('#actionSegs .seg').forEach(s=>s.classList.toggle('on', s.getAttribute('data-action')==='join'));
+  hide('browse'); CFG.room=row.getAttribute('data-room'); CFG.relay=(document.getElementById('relay').value||CFG.relay).trim(); connect();
+});
+
+document.getElementById('ladderBtn').onclick=showLadder;
+document.getElementById('ladderClose').onclick=()=>hide('ladder');
+document.getElementById('browseBtn').onclick=browseRooms;
+document.getElementById('browseRefresh').onclick=browseRooms;
+document.getElementById('browseClose').onclick=()=>hide('browse');
+
+/* ---------------- verifiable proofs: export + replay ---------------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function exportProof(){
+  if(!lastProof) return;
+  const blob=new Blob([JSON.stringify(lastProof)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='modulus-proof'+(lastProof.winner?('-'+lastProof.winner+'-won'):'')+'.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+async function showReplay(){
+  show('replay'); const box=document.getElementById('recentMatches'); const base=httpBase();
+  if(!base){ box.innerHTML='<div class="lbempty">Recent matches come from the relay server.<br>You can still load a proof file above.</div>'; return; }
+  box.innerHTML='loading…';
+  try{ const j=await (await fetch(base+'/api/matches')).json();
+    if(!j.matches||!j.matches.length){ box.innerHTML='<div class="lbempty">No matches recorded yet — play one, then replay it here.</div>'; return; }
+    box.innerHTML=j.matches.map(m=>`<div class="lbrow join" data-digest="${esc(m.digest)}"><span class="nm">${esc(m.a.name)} vs ${esc(m.b.name)}</span><span class="wl">N=${m.N}·${m.rounds}r·${m.winner==='draw'?'draw':esc(m.winner)+' won'}</span></div>`).join('');
+  }catch(e){ box.innerHTML='<div class="lbempty">Could not load recent matches.</div>'; }
+}
+document.getElementById('recentMatches').addEventListener('click',async e=>{
+  const row=e.target.closest('.lbrow.join'); if(!row) return; const base=httpBase(); if(!base) return;
+  row.style.opacity='.5';
+  try{ const j=await (await fetch(base+'/api/match/'+row.getAttribute('data-digest'))).json(); if(j.ok&&j.proof) replayProof(j.proof); }catch(err){ row.style.opacity='1'; }
+});
+document.getElementById('proofFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ try{ replayProof(JSON.parse(rd.result)); }catch(err){ document.getElementById('recentMatches').innerHTML='<div class="lbempty">That file isn\u2019t valid proof JSON.</div>'; } }; rd.readAsText(f);
+  e.target.value='';
+});
+async function replayProof(proof){
+  if(!proof||!Array.isArray(proof.transcript)||!proof.transcript.length||!proof.N){ document.getElementById('recentMatches').innerHTML='<div class="lbempty">Not a valid proof.</div>'; return; }
+  hide('replay'); hide('over');
+  // cryptographic verification up front
+  const digest=await M.hashTranscript(proof.N, proof.transcript);
+  let sA=false,sB=false; try{ sA=await M.verifyStr(proof.pubA,digest,proof.sigA);}catch(e){} try{ sB=await M.verifyStr(proof.pubB,digest,proof.sigB);}catch(e){}
+  const a=await M.audit(proof.N, proof.transcript);
+  // set the stage (spectator-style rendering)
+  myRole='S'; client=null; transport=null; lastProof=null;
+  document.getElementById('exportProofBtn').style.display='none';
+  document.getElementById('roomTag').textContent='· replay';
+  curN=proof.N; lastState=M.newMatch(proof.N);
+  show('game'); initBoard(lastState); render(lastState); setPad(false);
+  document.getElementById('nameYou').textContent=(proof.a&&proof.a.name)||'A';
+  document.getElementById('nameOpp').textContent=(proof.b&&proof.b.name)||'B';
+  setPrompt('▷ Replaying a signed match — every move re-verified as it plays.');
+  // step through the transcript deterministically
+  const st=M.newMatch(proof.N); lastTranscript=[];
+  for(const r of proof.transcript){
+    await sleep(720);
+    const rec=M.resolveRound(st,r.mA,r.mB,r.nonceA,r.nonceB,r.round); rec.cA=r.cA; rec.cB=r.cB; lastTranscript.push(rec);
+    lastState=st; render(st); showResult(rec); drawClash(rec);
+  }
+  await sleep(650);
+  // verdict
+  const ok=sA&&sB&&a.ok&&!!a.final; const win=a.final?a.final.winner:'—';
+  document.getElementById('overTitle').textContent = win==='draw'?'DRAW':('PLAYER '+win+' WINS');
+  document.getElementById('overTitle').style.color = win==='A'?'var(--you)':win==='B'?'var(--opp)':'var(--muted)';
+  document.getElementById('overText').textContent = (a.final?a.final.reason:'')+' · replayed & verified';
+  const lo=document.getElementById('ladderOut'); lo.classList.remove('hidden');
+  lo.innerHTML=`<span class="${sA?'ok':'bad'}">${sA?'✓':'✗'} A signed</span>  <span class="${sB?'ok':'bad'}">${sB?'✓':'✗'} B signed</span>\n`+
+    (ok?'<span class="ok">✓ VERIFIED — both players signed this exact match; it replays identically. No server was trusted.</span>':'<span class="bad">✗ NOT VERIFIED — this proof was altered or forged.</span>');
+  document.getElementById('exportProofBtn').style.display='none';
+  document.getElementById('againBtn').textContent='DONE';
+  show('over'); runAudit('auditOut');
+}
+
+document.getElementById('exportProofBtn').onclick=exportProof;
+document.getElementById('replayBtn').onclick=showReplay;
+document.getElementById('replayClose').onclick=()=>hide('replay');
+
+/* ---------------- boot ---------------- */
+initIdentity();

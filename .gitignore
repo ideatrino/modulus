@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+# runtime data (the trustless ladder + its atomic-write temp files)
+leaderboard.json
+leaderboard.json.*.tmp
+online/leaderboard.json
+online/leaderboard.json.*.tmp
+# exported match proofs (personal)
+*proof*.json
+# logs / OS cruft
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

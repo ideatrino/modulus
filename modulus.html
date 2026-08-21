@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>MODULUS — a provably-fair mathematical duel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0D1A; --slate:#141A30; --slate-2:#1C2440; --line:#2A3358;
+    --you:#36E0C4; --you-dim:#1c6e62; --opp:#FF6E8A; --opp-dim:#7a3344;
+    --shard:#F6C652; --text:#E9EDF8; --muted:#828DB0;
+    --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans:"Inter", system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans)}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1100px 600px at 50% -10%, #16203f 0%, transparent 60%),
+      radial-gradient(800px 500px at 50% 120%, #1a1430 0%, transparent 55%), var(--ink);
+    padding:16px 14px 40px; display:flex; justify-content:center;
+  }
+  .wrap{width:100%;max-width:520px}
+  .hidden{display:none !important}
+
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
+  .title{font-family:var(--mono);font-weight:700;letter-spacing:.22em;font-size:19px;white-space:nowrap}
+  .title b{color:var(--you)}
+  .eyebrow{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-align:right}
+  .iconbtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;transition:.15s}
+  .iconbtn:hover{color:var(--text);border-color:var(--muted)}
+
+  /* ---------- MENU ---------- */
+  .menu-hero{text-align:center;margin:26px 0 22px}
+  .menu-hero .big{font-family:var(--mono);font-weight:700;letter-spacing:.24em;font-size:40px;margin:0}
+  .menu-hero .big b{color:var(--you)}
+  .menu-hero .sub{color:var(--muted);font-size:13px;margin-top:10px;line-height:1.5}
+  .menu-hero .field{font-family:var(--mono);color:var(--shard);font-size:12px;letter-spacing:.1em;margin-top:8px}
+  .group{margin:20px 0}
+  .group > .glabel{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.12em;margin:0 2px 9px;text-transform:uppercase}
+  .segs{display:flex;gap:8px;flex-wrap:wrap}
+  .seg{flex:1;min-width:64px;font-family:var(--mono);font-size:14px;color:var(--text);background:var(--slate-2);border:1px solid var(--line);border-radius:11px;padding:13px 8px;cursor:pointer;transition:.15s;text-align:center}
+  .seg small{display:block;font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.02em}
+  .seg:hover{border-color:var(--muted)}
+  .seg.on{border-color:var(--you);background:#1a2b44;box-shadow:0 0 0 1px var(--you) inset}
+  .seg.on small{color:var(--you)}
+  .ring-segs .seg{min-width:44px;flex:0 0 auto;padding:12px 0;width:52px}
+  .start{width:100%;font-family:var(--mono);font-weight:700;letter-spacing:.14em;font-size:16px;color:var(--ink);background:var(--you);border:none;border-radius:13px;padding:16px;cursor:pointer;margin-top:8px;transition:.15s}
+  .start:hover{filter:brightness(1.08)}
+  .menu-foot{text-align:center;color:var(--muted);font-size:11px;font-family:var(--mono);letter-spacing:.06em;margin-top:16px}
+
+  /* ---------- GAME ---------- */
+  .bars{display:grid;gap:9px;margin-bottom:12px}
+  .bar-row{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px}
+  .who{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  .who.you{color:var(--you)} .who.opp{color:var(--opp)}
+  .track{height:12px;border-radius:7px;background:#0c1126;border:1px solid var(--line);overflow:hidden}
+  .fill{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .fill.you{background:linear-gradient(90deg,var(--you-dim),var(--you))}
+  .fill.opp{background:linear-gradient(90deg,var(--opp-dim),var(--opp))}
+  .pips{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:70px;text-align:right;letter-spacing:1px}
+  .pips .lit{color:var(--shard)}
+
+  .stage{position:relative;width:100%;aspect-ratio:1/1;margin:4px auto;max-width:400px}
+  svg{width:100%;height:100%;overflow:visible;display:block}
+  .ring-base{fill:none;stroke:var(--line);stroke-width:1.4}
+  .spoke{stroke:#1b2342;stroke-width:1}
+  .node{fill:#0d1428;stroke:var(--line);stroke-width:1.3}
+  .node-label{font-family:var(--mono);fill:var(--muted);text-anchor:middle;dominant-baseline:central}
+  .champ{transition:transform .55s cubic-bezier(.2,.85,.25,1)}
+  .champ circle{stroke-width:2}
+  .champ.you circle{fill:rgba(54,224,196,.18);stroke:var(--you)}
+  .champ.opp circle{fill:rgba(255,110,138,.18);stroke:var(--opp)}
+  .champ .glow{filter:blur(6px);opacity:.55}
+  .shard{transition:opacity .35s}
+  .chord{stroke-width:2.5;stroke-linecap:round;opacity:0;transition:opacity .25s}
+  .center-cap{font-family:var(--mono);font-size:10px;letter-spacing:.18em;fill:var(--muted);text-anchor:middle}
+  .center-d{font-family:var(--mono);text-anchor:middle;dominant-baseline:central;font-size:34px;fill:var(--muted)}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}40%{opacity:1}100%{transform:scale(1.6);opacity:0}}
+  .float{font-family:var(--mono);font-weight:700;text-anchor:middle;animation:pop 1s ease-out forwards}
+
+  .strip{background:var(--slate);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .strip .lbl{color:var(--text)}
+  .hash{color:var(--you);word-break:break-all;flex:1;min-width:110px}
+  .verify{color:var(--shard)} .verify.bad{color:var(--opp)}
+  .turnpill{font-family:var(--mono);font-size:12px;letter-spacing:.08em;padding:3px 10px;border-radius:8px}
+  .turnpill.you{background:rgba(54,224,196,.14);color:var(--you)}
+  .turnpill.opp{background:rgba(255,110,138,.14);color:var(--opp)}
+
+  .result{min-height:44px;background:var(--slate);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;font-size:13px;line-height:1.45}
+  .result .mono{font-family:var(--mono)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:6px;margin-right:6px}
+  .tag.you{background:rgba(54,224,196,.14);color:var(--you)}
+  .tag.opp{background:rgba(255,110,138,.14);color:var(--opp)}
+  .tag.parry{background:rgba(130,141,176,.16);color:var(--muted)}
+
+  .prompt{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.05em;margin:2px 2px 9px}
+  .prompt b{color:var(--text)}
+  .pad{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .pick{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--text);background:var(--slate-2);border:1px solid var(--line);border-radius:11px;padding:13px 0;cursor:pointer;transition:transform .08s,background .15s,border-color .15s,box-shadow .15s}
+  .pick:hover{background:#243056;border-color:var(--you);box-shadow:0 0 0 1px var(--you) inset}
+  .pick:active{transform:translateY(1px) scale(.96)}
+  .pick:disabled{opacity:.3;cursor:not-allowed;box-shadow:none;border-color:var(--line);background:var(--slate-2)}
+
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+  .foot .left{display:flex;gap:8px}
+
+  /* ---------- OVERLAYS ---------- */
+  .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,9,18,.9);z-index:30;padding:20px;backdrop-filter:blur(4px)}
+  .overlay.show{display:flex}
+  .card{background:var(--slate);border:1px solid var(--line);border-radius:18px;padding:26px 24px;max-width:380px;width:100%;max-height:88vh;overflow:auto}
+  .card h2{font-family:var(--mono);letter-spacing:.14em;margin:0 0 6px;font-size:22px;text-align:center}
+  .card .lead{color:var(--muted);font-size:13px;line-height:1.5;text-align:center;margin:0 0 18px}
+  .card .row{display:flex;gap:10px;margin-top:16px}
+  .card .row .start{margin-top:0}
+  .ghost{width:100%;font-family:var(--mono);font-weight:600;letter-spacing:.1em;font-size:14px;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:13px;padding:15px;cursor:pointer;transition:.15s}
+  .ghost:hover{border-color:var(--muted)}
+  .rules{font-size:13px;line-height:1.6;color:var(--text)}
+  .rules li{margin-bottom:9px}
+  .rules b{color:var(--you)}
+  .rules .m{font-family:var(--mono);color:var(--shard)}
+  .stats{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;margin:14px 0;line-height:1.7}
+  .stats .v{color:var(--text);float:right}
+  .audit{font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--muted);background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;min-height:20px;white-space:pre-wrap}
+  .audit .ok{color:var(--you)} .audit .bad{color:var(--opp)}
+
+  /* hot-seat handoff */
+  .handoff .card{text-align:center}
+  .handoff .lock{font-size:40px;margin-bottom:8px}
+
+  @media (prefers-reduced-motion: reduce){ .champ,.fill,.float{transition:none;animation:none} }
+  @media (max-width:380px){ .menu-hero .big{font-size:32px} .title{font-size:16px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= MENU ================= -->
+  <section id="menu">
+    <div class="menu-hero">
+      <p class="big"><b>MOD</b>ULUS</p>
+      <p class="sub">A duel with zero randomness, no dominant move,<br>and an outcome anyone can audit.</p>
+      <p class="field" id="menuField">FIELD ℤ/11ℤ</p>
+    </div>
+
+    <div class="group">
+      <p class="glabel">Mode</p>
+      <div class="segs" id="modeSegs">
+        <div class="seg on" data-mode="solo">Solo<small>vs Cipher AI</small></div>
+        <div class="seg" data-mode="hotseat">2-Player<small>pass &amp; play</small></div>
+      </div>
+    </div>
+
+    <div class="group" id="diffGroup">
+      <p class="glabel">Opponent</p>
+      <div class="segs" id="diffSegs">
+        <div class="seg on" data-diff="fair">Fair<small>unexploitable mix</small></div>
+        <div class="seg" data-diff="adaptive">Adaptive<small>reads your habits</small></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="glabel">Ring size &nbsp;(prime modulus)</p>
+      <div class="segs ring-segs" id="sizeSegs">
+        <div class="seg" data-n="7">7</div>
+        <div class="seg on" data-n="11">11</div>
+        <div class="seg" data-n="13">13</div>
+        <div class="seg" data-n="17">17</div>
+        <div class="seg" data-n="23">23</div>
+      </div>
+    </div>
+
+    <button class="start" id="startBtn">START DUEL</button>
+    <div class="row" style="display:flex;gap:10px;margin-top:10px">
+      <button class="ghost" id="howBtn">HOW TO PLAY</button>
+    </div>
+    <p class="menu-foot" id="soundLine">◼ sound on — tap to toggle</p>
+  </section>
+
+  <!-- ================= GAME ================= -->
+  <section id="game" class="hidden">
+    <header>
+      <div class="title"><b>MOD</b>ULUS</div>
+      <div class="eyebrow" id="roundLbl">ROUND 1</div>
+      <button class="iconbtn" id="menuBtn">MENU</button>
+    </header>
+
+    <div class="bars">
+      <div class="bar-row">
+        <span class="who you" id="nameYou">You</span>
+        <div class="track"><div class="fill you" id="hpYou" style="width:100%"></div></div>
+        <span class="pips" id="scYou"></span>
+      </div>
+      <div class="bar-row">
+        <span class="who opp" id="nameOpp">Cipher</span>
+        <div class="track"><div class="fill opp" id="hpOpp" style="width:100%"></div></div>
+        <span class="pips" id="scOpp"></span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <svg id="board" viewBox="0 0 400 400" aria-label="The ring of residues">
+        <circle class="ring-base" cx="200" cy="200" r="150"></circle>
+        <g id="spokes"></g><g id="nodes"></g>
+        <line class="chord" id="chord" x1="200" y1="200" x2="200" y2="200"></line>
+        <text class="center-cap" id="centerCap" x="200" y="178">DIFFERENCE</text>
+        <text class="center-d" id="centerD" x="200" y="206">—</text>
+        <g id="shards"></g><g id="champs"></g><g id="fx"></g>
+      </svg>
+    </div>
+
+    <div class="strip" id="strip">
+      <span class="lbl" id="stripLbl">Cipher's sealed move</span>
+      <span class="hash" id="commit">—</span>
+      <span class="verify" id="verify"></span>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <div class="prompt" id="prompt">› SELECT YOUR RESIDUE</div>
+    <div class="pad" id="pad"></div>
+
+    <div class="foot">
+      <div class="left">
+        <button class="iconbtn" id="verifyBtn">AUDIT MATCH</button>
+        <button class="iconbtn" id="soundBtn">◼ SOUND</button>
+      </div>
+      <button class="iconbtn" id="resetBtn">RESTART</button>
+    </div>
+  </section>
+</div>
+
+<!-- ============ HOW TO PLAY ============ -->
+<div class="overlay" id="howOverlay">
+  <div class="card">
+    <h2>HOW TO PLAY</h2>
+    <ul class="rules">
+      <li>Both champions sit on a ring of <b>N</b> positions — the integers mod N.</li>
+      <li>Each round you both secretly pick a residue <span class="m">m ∈ {0 … N−1}</span>, then reveal at once.</li>
+      <li><b>Clash:</b> let <span class="m">d = (your m − their m) mod N</span>. If d is in the lower half (1…(N−1)/2) you win and deal <b>d</b> damage. Upper half, you lose. Equal residues <b>parry</b>.</li>
+      <li><b>Move:</b> your same number is how many steps you sweep clockwise. Any <span class="m" style="color:var(--shard)">shard</span> you pass or land on is collected.</li>
+      <li>The number that wins a clash is rarely the number that grabs the shard you want — that squeeze is the game.</li>
+      <li><b>Win:</b> drain the opponent's HP to zero, or collect <b>5 shards</b> first.</li>
+      <li>No dice, no hidden stats. Every residue beats exactly half the others, so nothing is overpowered — you win by reading your opponent.</li>
+    </ul>
+    <div class="row"><button class="start" id="howClose">GOT IT</button></div>
+  </div>
+</div>
+
+<!-- ============ HANDOFF (hot-seat) ============ -->
+<div class="overlay handoff" id="handoffOverlay">
+  <div class="card">
+    <div class="lock">🔒</div>
+    <h2 id="handoffName">PLAYER 2</h2>
+    <p class="lead">The move is sealed. Pass the device — the other player must not see the pad.</p>
+    <div class="row"><button class="start" id="handoffBtn">I'M READY</button></div>
+  </div>
+</div>
+
+<!-- ============ GAME OVER ============ -->
+<div class="overlay" id="overOverlay">
+  <div class="card">
+    <h2 id="overTitle">—</h2>
+    <p class="lead" id="overText">—</p>
+    <div class="stats" id="overStats"></div>
+    <button class="ghost" id="auditBtn">AUDIT MATCH INTEGRITY</button>
+    <div class="audit hidden" id="auditOut"></div>
+    <div class="row">
+      <button class="start" id="rematchBtn">REMATCH</button>
+      <button class="ghost" id="toMenuBtn">MENU</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LIVE AUDIT ============ -->
+<div class="overlay" id="liveAuditOverlay">
+  <div class="card">
+    <h2>MATCH AUDIT</h2>
+    <p class="lead">Independent re-check of every round played so far — recompute the commitments and replay the match from its seed.</p>
+    <div class="audit" id="liveAuditOut">—</div>
+    <div class="row"><button class="start" id="liveAuditClose">CLOSE</button></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   MODULUS — complete game logic
+   ============================================================ */
+const CFG = { mode:'solo', diff:'fair', N:11, sound:true };
+
+function derived(N){
+  const HALF=(N-1)/2;
+  return { N, HALF, START_HP:2*HALF+2, WIN_SCORE:5, NUM_SHARDS:(N<=11?2:3) };
+}
+const R=150, CX=200, CY=200;
+
+/* ---- dedicated shard RNG (mulberry32). It advances ONLY when shards spawn, and
+   its seed is recorded — so the whole match replays byte-for-byte during an audit,
+   independent of how moves and nonces were generated. ---- */
+let sseed=0, sseed0=0;
+function sSeed(s){ sseed=s>>>0; sseed0=sseed; }
+function srng(){ sseed|=0; sseed=(sseed+0x6D2B79F5)|0; let t=Math.imul(sseed^(sseed>>>15),1|sseed); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }
+const sInt=n=>Math.floor(srng()*n);
+/* ---- unpredictable source for moves & nonces (never touches the shard stream) ---- */
+const rInt=n=>Math.floor(Math.random()*n);
+function randNonce(){ return rInt(2**31).toString(16)+rInt(2**31).toString(16); }
+
+/* ---- pure game math ---- */
+function combat(p,a,N,HALF){
+  const d=((p-a)%N+N)%N;
+  if(d===0) return {d,winner:'none',dmg:0};
+  if(d<=HALF) return {d,winner:'you',dmg:d};
+  return {d,winner:'opp',dmg:N-d};
+}
+function arc(from,steps,N){ const o=[]; for(let k=1;k<=steps;k++) o.push((from+k)%N); return o; }
+
+async function sha256Hex(str){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    let h=2166136261>>>0; for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}
+    return (h>>>0).toString(16).padStart(8,'0').repeat(8);
+  }
+}
+
+/* ---- geometry ---- */
+function nodePos(i,N){ const ang=-Math.PI/2+i*(2*Math.PI/N); return {x:CX+R*Math.cos(ang), y:CY+R*Math.sin(ang), ang}; }
+function nodeR(N){ return N<=11?15:N<=17?12:10; }
+function labelSize(N){ return N<=11?13:N<=17?11:9; }
+
+/* ---- shard placement (deterministic from seed) ---- */
+function freeCells(occ,N){ const f=[]; for(let i=0;i<N;i++) if(!occ.includes(i)) f.push(i); return f; }
+function spawnShards(count,occ,N){
+  const out=[]; let o=occ.slice();
+  for(let k=0;k<count;k++){ const f=freeCells(o,N); if(!f.length) break; const c=f[sInt(f.length)]; out.push(c); o.push(c); }
+  return out;
+}
+
+/* ---- audio (tiny synth) ---- */
+let AC=null;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return AC; }
+function beep(freqs, dur=0.12, type='triangle', gain=0.05){
+  if(!CFG.sound) return; const c=ac(); if(!c) return;
+  freqs.forEach((f,i)=>{ const o=c.createOscillator(),g=c.createGain(); o.type=type; o.frequency.value=f;
+    const t=c.currentTime+i*0.06; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.02); });
+}
+const sfx={ win:()=>beep([440,554,659],0.16,'triangle',0.06), lose:()=>beep([330,247],0.16,'sawtooth',0.05),
+  parry:()=>beep([392],0.08,'square',0.03), shard:()=>beep([880,1175],0.09,'sine',0.045),
+  victory:()=>beep([523,659,784,1047],0.22,'triangle',0.07), defeat:()=>beep([392,311,262],0.28,'sawtooth',0.06),
+  pick:()=>beep([660],0.05,'sine',0.03) };
+
+/* ============================================================
+   STATE + FLOW
+   ============================================================ */
+let S=null;
+
+function newGame(){
+  const d=derived(CFG.N);
+  sSeed((Date.now()^0x9e3779b9^(CFG.N*2654435761))>>>0);
+  S={
+    D:d, mode:CFG.mode, diff:CFG.diff,
+    you:{pos:0,hp:d.START_HP,score:0}, opp:{pos:(d.N>>1),hp:d.START_HP,score:0},
+    shards:[], round:1, phase:'idle', commit:null,
+    hs:{p1:null,p1c:null}, log:[], youCounts:new Array(d.N).fill(0),
+    seed0:sseed0
+  };
+  S.shards=spawnShards(d.NUM_SHARDS,[S.you.pos,S.opp.pos],d.N);
+  document.getElementById('nameYou').textContent = CFG.mode==='hotseat'?'Player 1':'You';
+  document.getElementById('nameOpp').textContent = CFG.mode==='hotseat'?'Player 2':'Cipher';
+  buildBoard(); buildPad(); render();
+  startRound();
+}
+
+async function startRound(){
+  document.getElementById('roundLbl').textContent='ROUND '+S.round;
+  const v=document.getElementById('verify');
+  if(S.mode==='solo'){
+    // Cipher commits FIRST — it cannot adapt to your move this round.
+    let value;
+    if(S.diff==='adaptive' && S.round>1) value=adaptiveMove(); else value=rInt(S.D.N);
+    const nonce=randNonce(); const hash=await sha256Hex(value+':'+nonce);
+    S.commit={value,nonce,hash};
+    document.getElementById('stripLbl').innerHTML='<span class="turnpill opp">CIPHER</span> sealed move';
+    document.getElementById('commit').innerHTML='0x'+hash.slice(0,16)+'…';
+    v.textContent='SEALED'; v.className='verify';
+    setResult(defaultBrief());
+    S.phase='commit'; setPad(true);
+  } else {
+    // hot-seat: player 1 commits first (sealed), then player 2
+    S.hs={p1:null,p1c:null};
+    document.getElementById('stripLbl').innerHTML='<span class="turnpill you">PLAYER 1</span> to seal';
+    document.getElementById('commit').textContent='awaiting…'; v.textContent='';
+    setResult('<span class="mono">Player 1</span> — pick your residue in secret. It seals instantly, then you pass the device.');
+    S.phase='hs1'; setPad(true);
+  }
+}
+
+function defaultBrief(){
+  return "Cipher has <span class='mono'>committed</span> and cannot change its move. Pick yours — both reveal at once. Win the clash with a difference of 1–"+S.D.HALF+"; your number is also how far you sweep for <span style='color:var(--shard)'>shards</span>.";
+}
+
+/* Adaptive AI: best-respond to your empirical frequencies, with ε exploration.
+   Still commits before seeing your current move, so it stays provably fair. */
+function adaptiveMove(){
+  const {N,HALF}=S.D; const eps=0.18;
+  if(Math.random()<eps) return rInt(N);
+  const tot=S.youCounts.reduce((s,c)=>s+c,0)||1;
+  let best=rInt(N), bestEv=-Infinity;
+  for(let a=0;a<N;a++){
+    let ev=0;
+    for(let p=0;p<N;p++){ const r=combat(p,a,N,HALF); ev+=(S.youCounts[p]/tot)*((r.winner==='opp'?r.dmg:0)-(r.winner==='you'?r.dmg:0)); }
+    if(ev>bestEv){bestEv=ev;best=a;}
+  }
+  return best;
+}
+
+async function onPick(m){
+  sfx.pick();
+  if(S.phase==='commit'){ await resolveSolo(m); }
+  else if(S.phase==='hs1'){ await sealP1(m); }
+  else if(S.phase==='hs2'){ await resolveHotseat(m); }
+}
+
+/* -------- SOLO resolution -------- */
+async function resolveSolo(p){
+  S.phase='reveal'; setPad(false);
+  const a=S.commit.value;
+  const check=await sha256Hex(a+':'+S.commit.nonce);
+  const v=document.getElementById('verify');
+  const okHash=(check===S.commit.hash);
+  v.textContent=okHash?'VERIFIED ✓':'TAMPERED ✗'; v.className='verify'+(okHash?'':' bad');
+  document.getElementById('commit').innerHTML='m = '+a;
+  const pNonce=randNonce(), pHash=await sha256Hex(p+':'+pNonce);
+  finishRound(p,a,{you:{v:p,nonce:pNonce,hash:pHash},opp:{v:a,nonce:S.commit.nonce,hash:S.commit.hash}});
+}
+
+/* -------- HOT-SEAT resolution -------- */
+async function sealP1(p1){
+  const nonce=randNonce(), hash=await sha256Hex(p1+':'+nonce);
+  S.hs={p1:p1,p1c:{v:p1,nonce,hash}};
+  setPad(false);
+  document.getElementById('commit').innerHTML='0x'+hash.slice(0,16)+'…';
+  document.getElementById('verify').textContent='SEALED';
+  // handoff gate
+  document.getElementById('handoffName').textContent='PLAYER 2';
+  showOverlay('handoffOverlay');
+}
+function afterHandoff(){
+  hideOverlay('handoffOverlay');
+  document.getElementById('stripLbl').innerHTML='<span class="turnpill opp">PLAYER 2</span> to seal';
+  setResult('<span class="mono">Player 2</span> — pick your residue. Both reveal the instant you choose.');
+  S.phase='hs2'; setPad(true);
+}
+async function resolveHotseat(p2){
+  S.phase='reveal'; setPad(false);
+  const c1=await sha256Hex(S.hs.p1+':'+S.hs.p1c.nonce);
+  const ok=(c1===S.hs.p1c.hash);
+  const v=document.getElementById('verify'); v.textContent=ok?'VERIFIED ✓':'TAMPERED ✗'; v.className='verify'+(ok?'':' bad');
+  document.getElementById('commit').innerHTML='P1 = '+S.hs.p1+' · P2 = '+p2;
+  const n2=randNonce(), h2=await sha256Hex(p2+':'+n2);
+  finishRound(S.hs.p1,p2,{you:{v:S.hs.p1,nonce:S.hs.p1c.nonce,hash:S.hs.p1c.hash},opp:{v:p2,nonce:n2,hash:h2}});
+}
+
+/* -------- shared round resolution -------- */
+function finishRound(youM,oppM,commits){
+  const {N,HALF,START_HP,WIN_SCORE,NUM_SHARDS}=S.D;
+  const res=combat(youM,oppM,N,HALF);
+  const youArc=arc(S.you.pos,youM,N), oppArc=arc(S.opp.pos,oppM,N);
+  let yg=0,og=0; const remaining=[];
+  for(const s of S.shards){
+    const inY=youArc.includes(s), inO=oppArc.includes(s);
+    if(inY&&inO){ if(res.winner==='you')yg++; else if(res.winner==='opp')og++; else remaining.push(s); }
+    else if(inY) yg++; else if(inO) og++; else remaining.push(s);
+  }
+  if(res.winner==='you') S.opp.hp=Math.max(0,S.opp.hp-res.dmg);
+  if(res.winner==='opp') S.you.hp=Math.max(0,S.you.hp-res.dmg);
+  S.you.pos=(S.you.pos+youM)%N; S.opp.pos=(S.opp.pos+oppM)%N;
+  S.you.score+=yg; S.opp.score+=og;
+  S.youCounts[youM]++;
+  S.shards=remaining.concat(spawnShards(NUM_SHARDS-remaining.length,[S.you.pos,S.opp.pos,...remaining],N));
+
+  S.log.push({round:S.round, you:commits.you, opp:commits.opp, d:res.d, winner:res.winner, dmg:res.dmg,
+    yg,og, youHp:S.you.hp,oppHp:S.opp.hp, youScore:S.you.score,oppScore:S.opp.score});
+
+  showResult(youM,oppM,res,yg,og);
+  render(); drawClash(res);
+  if(yg||og) sfx.shard();
+  if(res.winner==='you') sfx.win(); else if(res.winner==='opp') sfx.lose(); else sfx.parry();
+
+  const over=checkWin();
+  if(over){ S.phase='over'; setTimeout(()=>endGame(over),950); }
+  else { S.round++; setTimeout(startRound,1300); }
+}
+
+function checkWin(){
+  const {WIN_SCORE}=S.D; const yd=S.you.hp<=0, od=S.opp.hp<=0;
+  const p1='Player 1', p2='Player 2', you=S.mode==='hotseat'?p1:'You', opp=S.mode==='hotseat'?p2:'Cipher';
+  if(yd||od){ if(yd&&od) return {t:'DRAW',x:'Both fields collapsed to zero at once.',w:'draw'};
+    if(od) return {t:(S.mode==='hotseat'?'PLAYER 1 WINS':'YOU WIN'),x:opp+"'s HP drained to zero.",w:'you'};
+    return {t:(S.mode==='hotseat'?'PLAYER 2 WINS':'YOU LOSE'),x:you+"'s HP drained to zero.",w:'opp'}; }
+  if(S.you.score>=WIN_SCORE||S.opp.score>=WIN_SCORE){
+    if(S.you.score>S.opp.score) return {t:(S.mode==='hotseat'?'PLAYER 1 WINS':'YOU WIN'),x:you+' collected 5 shards first.',w:'you'};
+    if(S.opp.score>S.you.score) return {t:(S.mode==='hotseat'?'PLAYER 2 WINS':'YOU LOSE'),x:opp+' collected 5 shards first.',w:'opp'};
+    return {t:'DRAW',x:'Both reached 5 shards together.',w:'draw'};
+  }
+  return null;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function buildBoard(){
+  const {N}=S.D;
+  const sp=document.getElementById('spokes'), nd=document.getElementById('nodes');
+  sp.innerHTML=''; nd.innerHTML='';
+  const nr=nodeR(N), fs=labelSize(N);
+  for(let i=0;i<N;i++){
+    const p=nodePos(i,N);
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('class','spoke'); l.setAttribute('x1',CX); l.setAttribute('y1',CY); l.setAttribute('x2',p.x); l.setAttribute('y2',p.y); sp.appendChild(l);
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('class','node'); c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r',nr); nd.appendChild(c);
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('class','node-label'); t.setAttribute('x',p.x); t.setAttribute('y',p.y); t.setAttribute('font-size',fs); t.textContent=i; nd.appendChild(t);
+  }
+}
+function buildPad(){
+  const {N}=S.D; const pad=document.getElementById('pad'); pad.innerHTML='';
+  for(let i=0;i<N;i++){ const b=document.createElement('button'); b.className='pick'; b.textContent=i; b.disabled=true; b.addEventListener('click',()=>onPick(i)); pad.appendChild(b); }
+}
+function setPad(on){ document.querySelectorAll('.pick').forEach(b=>b.disabled=!on); }
+
+function render(){
+  const {N,START_HP,WIN_SCORE}=S.D;
+  document.getElementById('hpYou').style.width=(100*S.you.hp/START_HP)+'%';
+  document.getElementById('hpOpp').style.width=(100*S.opp.hp/START_HP)+'%';
+  document.getElementById('scYou').innerHTML=pips(S.you.score,WIN_SCORE);
+  document.getElementById('scOpp').innerHTML=pips(S.opp.score,WIN_SCORE);
+
+  const sg=document.getElementById('shards'); sg.innerHTML='';
+  for(const s of S.shards){ const pt=nodePos(s,N); const d=document.createElementNS('http://www.w3.org/2000/svg','path'); const z=7;
+    d.setAttribute('d',`M${pt.x} ${pt.y-z} L${pt.x+z} ${pt.y} L${pt.x} ${pt.y+z} L${pt.x-z} ${pt.y} Z`);
+    d.setAttribute('class','shard'); d.setAttribute('fill','var(--shard)'); d.setAttribute('stroke','#7a5e16'); d.setAttribute('stroke-width','1'); sg.appendChild(d); }
+
+  const cg=document.getElementById('champs'); cg.innerHTML='';
+  cg.appendChild(champEl(S.you.pos,'you',N)); cg.appendChild(champEl(S.opp.pos,'opp',N));
+}
+function pips(score,max){ let s=''; for(let i=0;i<max;i++) s+= i<score?'<span class="lit">◆</span>':'◇'; return s; }
+function champEl(pos,cls,N){
+  const pt=nodePos(pos,N); const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','champ '+cls); g.setAttribute('transform',`translate(${pt.x} ${pt.y})`);
+  const glow=document.createElementNS('http://www.w3.org/2000/svg','circle'); glow.setAttribute('class','glow'); glow.setAttribute('r',12); glow.setAttribute('fill',cls==='you'?'var(--you)':'var(--opp)');
+  const c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('r',10);
+  g.appendChild(glow); g.appendChild(c); return g;
+}
+function setResult(html){ document.getElementById('result').innerHTML=html; }
+function showResult(p,a,res,yg,og){
+  let tag; const oppName=S.mode==='hotseat'?'Player 2':'Cipher', youName=S.mode==='hotseat'?'Player 1':'You';
+  if(res.winner==='you') tag=`<span class="tag you">CLASH WON</span> ${youName} dealt <b>${res.dmg}</b>.`;
+  else if(res.winner==='opp') tag=`<span class="tag opp">CLASH LOST</span> ${oppName} dealt <b>${res.dmg}</b>.`;
+  else tag=`<span class="tag parry">PARRY</span> Equal residues — no damage.`;
+  const shardLine=(yg||og)?` <span style="color:var(--shard)">Shards:</span> +${yg} / +${og}.`:'';
+  setResult(`<span class="mono">${p} · ${a} → d=(${p}−${a}) mod ${S.D.N}=${res.d}</span><br>${tag}${shardLine}`);
+}
+function drawClash(res){
+  const {N}=S.D; const yp=nodePos(S.you.pos,N), op=nodePos(S.opp.pos,N);
+  const ch=document.getElementById('chord');
+  const color=res.winner==='you'?'var(--you)':res.winner==='opp'?'var(--opp)':'var(--muted)';
+  ch.setAttribute('x1',yp.x); ch.setAttribute('y1',yp.y); ch.setAttribute('x2',op.x); ch.setAttribute('y2',op.y); ch.setAttribute('stroke',color);
+  ch.style.opacity='0.8'; setTimeout(()=>ch.style.opacity='0',700);
+  const cd=document.getElementById('centerD'); cd.textContent=res.d; cd.setAttribute('fill',color);
+  document.getElementById('centerCap').textContent=res.winner==='none'?'PARRY':'DIFFERENCE';
+  if(res.dmg>0){ const tgt=res.winner==='you'?op:yp; const fx=document.getElementById('fx');
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('class','float'); t.setAttribute('x',tgt.x); t.setAttribute('y',tgt.y-16); t.setAttribute('fill',color); t.setAttribute('font-size','20'); t.textContent='−'+res.dmg; fx.appendChild(t); setTimeout(()=>t.remove(),1000); }
+}
+
+/* ============================================================
+   GAME OVER + AUDIT
+   ============================================================ */
+function endGame(o){
+  document.getElementById('overTitle').textContent=o.t;
+  document.getElementById('overTitle').style.color=o.w==='you'?'var(--you)':o.w==='opp'?'var(--opp)':'var(--muted)';
+  document.getElementById('overText').textContent=o.x;
+  const wins=S.log.filter(r=>r.winner==='you').length, losses=S.log.filter(r=>r.winner==='opp').length, parr=S.log.filter(r=>r.winner==='none').length;
+  document.getElementById('overStats').innerHTML=
+    `rounds<span class="v">${S.log.length}</span>clashes won / lost<span class="v">${wins} / ${losses}</span>parries<span class="v">${parr}</span>shards<span class="v">${S.you.score} / ${S.opp.score}</span>ring<span class="v">ℤ/${S.D.N}ℤ</span>`;
+  const out=document.getElementById('auditOut'); out.classList.add('hidden'); out.textContent='';
+  o.w==='you'?sfx.victory():o.w==='opp'?sfx.defeat():sfx.parry();
+  showOverlay('overOverlay');
+}
+
+/* Independent recomputation: re-verify every commitment hash AND re-simulate the
+   whole match from seed0 + the logged moves, confirming the final state matches. */
+async function auditMatch(outId){
+  const out=document.getElementById(outId||'auditOut'); out.classList.remove('hidden');
+  if(!S || S.log.length===0){ out.innerHTML='No rounds played yet — nothing to audit.'; return; }
+  out.innerHTML='Recomputing…';
+  const {N,HALF,START_HP,NUM_SHARDS}=S.D;
+  let hashOK=0, hashBad=0;
+  for(const r of S.log){
+    const a=await sha256Hex(r.opp.v+':'+r.opp.nonce); const b=await sha256Hex(r.you.v+':'+r.you.nonce);
+    if(a===r.opp.hash) hashOK++; else hashBad++;
+    if(b===r.you.hash) hashOK++; else hashBad++;
+  }
+  // re-simulate from scratch — reseed the shard stream to its recorded value
+  sSeed(S.seed0>>>0);
+  let you={pos:0,hp:START_HP,score:0}, opp={pos:(N>>1),hp:START_HP,score:0};
+  let shards=spawnShards(NUM_SHARDS,[you.pos,opp.pos],N);
+  let stateOK=true;
+  for(const r of S.log){
+    const res=combat(r.you.v,r.opp.v,N,HALF);
+    const yA=arc(you.pos,r.you.v,N), oA=arc(opp.pos,r.opp.v,N); const rem=[];
+    for(const s of shards){ const iY=yA.includes(s),iO=oA.includes(s);
+      if(iY&&iO){ if(res.winner==='you')you.score++; else if(res.winner==='opp')opp.score++; else rem.push(s);} else if(iY)you.score++; else if(iO)opp.score++; else rem.push(s); }
+    if(res.winner==='you')opp.hp=Math.max(0,opp.hp-res.dmg); if(res.winner==='opp')you.hp=Math.max(0,you.hp-res.dmg);
+    you.pos=(you.pos+r.you.v)%N; opp.pos=(opp.pos+r.opp.v)%N;
+    shards=rem.concat(spawnShards(NUM_SHARDS-rem.length,[you.pos,opp.pos,...rem],N));
+    if(you.hp!==r.youHp||opp.hp!==r.oppHp||you.score!==r.youScore||opp.score!==r.oppScore) stateOK=false;
+  }
+  const allHash=(hashBad===0), all=allHash&&stateOK;
+  out.innerHTML =
+    `<span class="${allHash?'ok':'bad'}">✓ commitments</span>  ${hashOK} valid, ${hashBad} tampered\n`+
+    `<span class="${stateOK?'ok':'bad'}">✓ recomputation</span>  ${S.log.length} rounds replayed from seed 0x${(S.seed0>>>0).toString(16)}\n`+
+    `<span class="${stateOK?'ok':'bad'}">✓ final state</span>  ${stateOK?'reproduces exactly':'MISMATCH'}\n`+
+    `\n${all?'<span class="ok">MATCH INTEGRITY VERIFIED — no dice, no hidden state, nothing to tamper with.</span>':'<span class="bad">INTEGRITY FAILURE</span>'}`;
+}
+
+/* ============================================================
+   OVERLAYS + MENU WIRING
+   ============================================================ */
+function showOverlay(id){ document.getElementById(id).classList.add('show'); }
+function hideOverlay(id){ document.getElementById(id).classList.remove('show'); }
+function show(sec){ document.getElementById('menu').classList.toggle('hidden',sec!=='menu'); document.getElementById('game').classList.toggle('hidden',sec!=='game'); }
+
+function updateMenuField(){ document.getElementById('menuField').textContent='FIELD ℤ/'+CFG.N+'ℤ'; }
+function updateSoundLine(){ document.getElementById('soundLine').textContent=(CFG.sound?'◼ sound on':'◻ sound off')+' — tap to toggle'; document.getElementById('soundBtn').textContent=(CFG.sound?'◼':'◻')+' SOUND'; }
+
+function wireSegs(containerId, attr, apply){
+  document.getElementById(containerId).addEventListener('click',e=>{
+    const seg=e.target.closest('.seg'); if(!seg) return;
+    [...seg.parentElement.children].forEach(c=>c.classList.remove('on')); seg.classList.add('on');
+    apply(seg.getAttribute(attr));
+  });
+}
+wireSegs('modeSegs','data-mode',v=>{ CFG.mode=v; document.getElementById('diffGroup').classList.toggle('hidden',v!=='solo'); });
+wireSegs('diffSegs','data-diff',v=>{ CFG.diff=v; });
+wireSegs('sizeSegs','data-n',v=>{ CFG.N=parseInt(v,10); updateMenuField(); });
+
+document.getElementById('startBtn').addEventListener('click',()=>{ ac(); show('game'); newGame(); });
+document.getElementById('menuBtn').addEventListener('click',()=>show('menu'));
+document.getElementById('resetBtn').addEventListener('click',()=>newGame());
+document.getElementById('howBtn').addEventListener('click',()=>showOverlay('howOverlay'));
+document.getElementById('howClose').addEventListener('click',()=>hideOverlay('howOverlay'));
+document.getElementById('handoffBtn').addEventListener('click',afterHandoff);
+document.getElementById('auditBtn').addEventListener('click',()=>auditMatch('auditOut'));
+document.getElementById('rematchBtn').addEventListener('click',()=>{ hideOverlay('overOverlay'); newGame(); });
+document.getElementById('toMenuBtn').addEventListener('click',()=>{ hideOverlay('overOverlay'); show('menu'); });
+document.getElementById('verifyBtn').addEventListener('click',()=>{ showOverlay('liveAuditOverlay'); auditMatch('liveAuditOut'); });
+document.getElementById('liveAuditClose').addEventListener('click',()=>hideOverlay('liveAuditOverlay'));
+function toggleSound(){ CFG.sound=!CFG.sound; updateSoundLine(); if(CFG.sound){ ac(); sfx.pick(); } }
+document.getElementById('soundBtn').addEventListener('click',toggleSound);
+document.getElementById('soundLine').addEventListener('click',toggleSound);
+
+updateMenuField(); updateSoundLine(); show('menu');
+</script>
+</body>
+</html>
